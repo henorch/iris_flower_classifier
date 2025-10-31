@@ -1,6 +1,8 @@
 import streamlit as st
 import joblib
+import matplotlib.pyplot as plt
 import numpy as np
+import wikipedia
 
 # Load the model
 model = joblib.load('./model/knn_model.pkl')
@@ -15,28 +17,38 @@ if st.button('Predict'):
         # Convert input to numeric array
         feat = np.array([float(x.strip()) for x in features.split(',')]).reshape(1, -1)
 
-        # Predict probabilities
+        # Predict probabilities and class
         chance = model.predict_proba(feat)[0]
-
-        # Predict the final class
         prediction = model.predict(feat)[0]
 
         # Map numeric prediction to species name
-        if prediction == 0:
-            output = "Setosa"
-        elif prediction == 1:
-            output = "Versicolor"
-        else:
-            output = "Virginica"
+        species = ["Setosa", "Versicolor", "Virginica"]
+        output = species[prediction]
 
-        # Show probabilities clearly
+        # --- Display probabilities ---
         st.subheader("Prediction Probabilities")
-        st.write(f"Setosa: {chance[0]*100:.2f}%")
-        st.write(f"Versicolor: {chance[1]*100:.2f}%")
-        st.write(f"Virginica: {chance[2]*100:.2f}%")
+        for name, prob in zip(species, chance):
+            st.write(f"{name}: {prob * 100:.2f}%")
 
-        # Display the most likely species
+        
+
+        # Wikipedia lookup
+        flower_name = f"Iris {output.capitalize()}"
+        with st.spinner("🔍 Please wait, getting flower information..."):
+            summary = wikipedia.summary(flower_name, sentences=2)
+            image = wikipedia.page(flower_name).images[0]
+
+        # Display result
         st.success(f"🌼 Predicted Iris species: **{output}**")
 
+        col1, col2 = st.columns([1, 3])  # image smaller column
+        with col1:
+            st.image(image, width=120, caption=flower_name)
+        with col2:
+            st.markdown(f"###  {flower_name}")
+            st.write(summary)
+
     except Exception as e:
-        st.error(f"⚠️ Invalid input! Please enter 4 numeric values separated by commas.\n\nError: {e}")
+        st.warning("Couldn't fetch online description. Displaying basic info instead.")
+        st.write(f"The predicted species is **{output}**.")
+        st.write(f"(Error: {e})")
